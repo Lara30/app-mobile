@@ -22,11 +22,21 @@
         <meta charset="utf-8" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="msapplication-tap-highlight" content="no" />
-        <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src *; connect-src *">
-        <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.apache.org/jira/browse/CB-4323 -->
-        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com
+        'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src *; connect-src *">
+        <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.
+        apache.org/jira/browse/CB-4323 -->
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1,
+        width=device-width, height=device-height, target-densitydpi=device-dpi" />
         <link rel="stylesheet" href="css/materialize.min.css">
         <link rel="stylesheet" type="text/css" href="css/index.css" />
+        <script type="text/javascript" src="js/app.js"></script>
+
+        <script type="text/javascript" src="js/jquery-2.1.4.min.js"></script>
+        <script type="text/javascript" src="js/materialize.min.js"></script>
+        <script type="text/javascript" src="cordova.js"></script>
+        <script type="text/javascript" src="js/index.js"></script>
+
         <title>Hello World</title>
     </head>
     <nav>
@@ -35,7 +45,7 @@
         </div>
     </nav>
     <body>
-    <div class="card-panel center-align">
+    <div class="margin card-panel center-align">
         <form>
             <div class="input-field">
                 <input id="city" type="text">
@@ -44,11 +54,84 @@
             <a class="waves-effect waves-light btn pink" id="getWeather">Get Weather</a>
         </form>
     </div>
-    <div class="card-panel teal center-align" id="card">
+
+    <div class="margin card-panel teal center-align" id="card">
     </div>
-        <script type="text/javascript" src="js/jquery-2.1.4.min.js"></script>
-        <script type="text/javascript" src="js/materialize.min.js"></script>
-        <script type="text/javascript" src="cordova.js"></script>
-        <script type="text/javascript" src="js/index.js"></script>
+    <script>
+        $(document).ready(function() {
+            //on récupere la variable localStorage ayant pour clé city, et on la met dans une variable
+            var city = localStorage.getItem("city");
+            //on met notre sélecteur dans une variable
+            var cardSelector = $("#card");
+// on crée une fonction qui récupère la météo avec les instructions suivantes
+            function getWeather() {
+                // on teste si la variable city est nulle
+                if (city == null) {
+                    // on affiche un message dans la card
+                    cardSelector.append("<p>Vous n'avez pas encore renseigné de ville.</p>");
+                } else { // sinon
+                    $("#card *:not(div)").remove();
+//ici on déclare notre APPID pour OpenWeatherMap
+                    var myAPPID = "7e181b27cf94564bb5e54c5402ff9bb7";
+                    // on met le résultat dans une variable result qui vaut le code JSON qu'on voit dans le navigateur
+                    $.getJSON("http://api.openweathermap.org/data/2.5/weather?APPID=" + myAPPID + "&q=" + city, function(result) {
+                        // le nom de la ville est directement accesible donc pas de souci
+                        var cityName = result.name;
+                        // la description du temps est dans le tableau weather (un tableau est défini par des []), on vise
+                        // le premier (0 = le premier en programmation), puis on prend la valeur de main
+                        var weatherType = result.weather[0].main;
+                        // Meme chose qu'au dessus sauf qu'on prend la valeur de icon
+                        var iconCode = result.weather[0].icon;
+                        // cette fois ci on va dans main qui n'est pas un tableau donc pas de '[]', on va de main a temp sans souci
+                        var temp = result.main.temp;
+                        // notre temperature est en Kelvin donc on effectue notre soustration pour l'avoir en Celsius, puis le
+                        // toFixed permet d'arrondir une valeur, le 1 correspond à un chiffre apres la virgule
+                        var tempInCelsius = (temp - 273.15).toFixed(1);
+
+                        // ici on remplit la card avec nos valeurs, premièrement la liste d'info, puis ensuite on affiche l'image avec le
+                        // code icone
+                        cardSelector.append("<ul><li>City : " + cityName + "</li><li>Weather type : " + weatherType + "</li><li> Temperature"
+                            + " : " + tempInCelsius + " &deg;C</li></ul>");
+                        cardSelector.append("<img src='img/" + iconCode + ".png' alt='Weather Icon' width='80px' height='80px'>");
+
+                        // voila notre utilisateur voit les informations météo de sa ville
+                    });
+                }
+            }
+            // on crée une fonction qui récupere la valeur du formulaire
+            function submitForm() {
+                // on récupere la valeur de notre input avec .val() et on la met dans une variable
+                var mycity = $('input').val();
+                // si la variable donc la ville de l'utilisateur est plus grande ou égale que 3 caracteres alors ...
+                if (mycity.length >= 3) {
+                    // on crée une variable localStorage, avec pour clé city et comme valeur la ville de l'utilisateur
+                    localStorage.setItem("city", mycity);
+                    // on donne la ville à la variable city qui est utilisée dans la fonction getWeather
+                    city = mycity;
+                    // on appelle la fonction getWeather pour récuperer la météo de cette ville, ville qui est stockée dans la
+                    // variable city
+                    getWeather();
+                    // si le champs fait 2 caracteres ou moins on ...
+                } else {
+                    // affiche une erreur
+                    alert('empty field');
+                }
+            }
+            // quand on commence à toucher le bouton avec l'id getWeather, alors ...
+            $('#getWeather').on('touchstart', function() {
+                // ... on appelle la fonction submitForm qui va traiter ce qu'il y a dans le champ de la ville
+                submitForm();
+            });
+// quand on soumet le formulaire, c'est à dire qu'on appuie sur la touche Entrée, alors ...
+            $('form').submit(function(event) {
+                // ici on annule le comportement par défault qui est de recharger la page quand on soumet un formulaire
+                event.preventDefault();
+                // ... on appelle la fonction submitForm qui va traiter ce qu'il y a dans le champ de la ville
+                submitForm();
+            });
+            // ici on appelle à l'allumage de l'application la fonction getWeather
+            getWeather();
+        });
+    </script>
     </body>
 </html>
